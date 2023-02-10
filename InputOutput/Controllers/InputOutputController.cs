@@ -33,8 +33,15 @@ public class InputOutputController : ControllerBase
     {
         try
         {
+        var productValue = new ProductInfoHeaderValue("InputOutput", "1.0");
+var commentValue = new ProductInfoHeaderValue("(+http://www.intrepion.com/InputOutput.html)");
+
             var client = new HttpClient();
-            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36");
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.UserAgent.Add(productValue);
+            client.DefaultRequestHeaders.UserAgent.Add(commentValue);
 
             var response = await client.GetAsync("https://files.nccih.nih.gov/test-sample.json");
 
@@ -44,7 +51,7 @@ public class InputOutputController : ControllerBase
                 var testSample = await JsonSerializer.DeserializeAsync<TestSample>(json);
 
                 var filteredGrants = testSample?.TestData
-                    .Where(td => td.GrantType == "R21")
+                    .Where(td => td.GrantType.Contains("\"R21\""))
                     .Select(td => new
                     {
                         td.Id,
