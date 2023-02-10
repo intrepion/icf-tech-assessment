@@ -27,58 +27,46 @@ public class InputOutputController : ControllerBase
         return splited;
     }
 
-    /*
-    Task 2: create a Controller and Call this API  https://files.nccih.nih.gov/test-sample.json 
- 
-Create a Table/Grid and bind the response from API. 
-Return the following: 
-id, title, grant_id, grant_type where  “grant_type” have R21 
-*/
-
     [HttpGet]
     [Route("ConsumeApi")]
     public async Task<IActionResult> ConsumeApi()
     {
-        // using var client = new HttpClient();
-        // client.BaseAddress = new Uri("https://files.nccih.nih.gov");
-        // client.DefaultRequestHeaders.Accept.Clear();
-        // client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("plain/text"));
+        try
+        {
+            var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36");
 
-        // var uri = new Uri(Uri baseUrl, string relative uri);
+            var response = await client.GetAsync("https://files.nccih.nih.gov/test-sample.json");
 
-        // var request = new HttpRequestMessage(HttpMethod.Get, "https://files.nccih.nih.gov/test-sample.json");
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStreamAsync();
+                var testSample = await JsonSerializer.DeserializeAsync<TestSample>(json);
 
-        // request.Headers.Add("Accept", "application/json");
+                var filteredGrants = testSample?.TestData
+                    .Where(td => td.GrantType == "R21")
+                    .Select(td => new
+                    {
+                        td.Id,
+                        td.Title,
+                        td.GrantId,
+                        td.GrantType
+                    });
 
-        // Console.WriteLine(request.RequestUri);
-        // HttpResponseMessage response = await client.GetAsync("test-sample.json");
-        
-        // var content = await response.Content.ReadAsStringAsync();
-        // Console.WriteLine(content);
-
-        // response.EnsureSuccessStatusCode();
-
-        // var json = JsonSerializer.Deserialize<TestSample>(content);
-
-        // var client = new HttpClient();
-        // client.BaseAddress = new Uri("https://dummyjson.com/products/1");
-        // client.DefaultRequestHeaders.Accept.Clear();
-        // client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        // HttpResponseMessage response = await client.GetAsync("products/1");
-        // Console.WriteLine(response);
-        // response.EnsureSuccessStatusCode();
-        // var result = await response.Content.ReadAsStringAsync();
-        // return Ok(result);
-
-        var client = new HttpClient();
-
-        string _baseAddress = "https://files.nccih.nih.gov";
-string endpoint = "api/School";
-
-client.BaseAddress = new Uri(_baseAddress);
-string result = client.GetStringAsync(endpoint).Result.ToString();
-
-return Ok(result);
+                return Ok(filteredGrants);
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return NotFound("The requested resource could not be found.");
+            }
+            else
+            {
+                return StatusCode(500, "Error retrieving grants data.");
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
     }
-    
 }
